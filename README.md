@@ -1,56 +1,61 @@
-# mspy-dat-mgr
+# 微软拼音词库管理器
 
-A Windows desktop manager for two Microsoft Pinyin dictionary formats:
+一个用于管理微软拼音两类 DAT 词库的 Windows 桌面工具：
 
-- `ChsPinyinUDL.dat` — self-study words
-- `UserDefinedPhrase.dat` — custom phrases
+- `ChsPinyinUDL.dat`：自学习词库
+- `UserDefinedPhrase.dat`：自定义短语词库
 
-The application provides separate workspaces for the two formats. It can import, edit, search, generate pinyin codes, deduplicate, save local workspaces, and export a new DAT file.
+它将两类词库分开管理，支持导入、编辑、搜索、自动生成拼音编码、去重、本地缓存和安全导出新的 DAT 文件。
 
-> This project is not affiliated with or endorsed by Microsoft.
+> 本项目与 Microsoft 无隶属、赞助或认可关系。
+>
+> English README: [docs/README.en.md](docs/README.en.md)
 
-## Download and use
+![软件界面截图](docs/screenshots/mspy-dat-mgr.png)
 
-For regular Windows users, download the ZIP package from the repository's **Releases** page, extract the entire archive, and run `mspy-dat-mgr.exe`. Python installation is not required.
+## 下载与使用
 
-A Chinese quick-start and safety reminder opens on launch. It remains available from the **使用说明** button in the lower-right corner of the main window.
+普通 Windows 用户请在 [Releases](https://github.com/Iemooon/mspy-dat-mgr/releases) 页面下载 ZIP 绿色版，完整解压后双击 `mspy-dat-mgr.exe` 即可运行，无需安装 Python。
 
-## Features
+程序启动时会自动展示中文“使用说明”；主界面右下角也保留“使用说明”按钮，便于随时查看。
 
-- Separate tabs for self-study words and custom phrases
-- Create a new dictionary, import an existing DAT, or reopen a local workspace
-- Add, delete, clear, search, bulk-paste, deduplicate, undo, and redo entries
-- Double-click to edit table cells; custom-phrase rank is editable
-- Generate full pinyin; custom phrases can also use initials
-- Export a new DAT and re-read it before reporting success
-- Never overwrites the imported DAT file
+基本流程：
 
-## Safety boundary
+1. 在左侧选择“自学习词库”或“自定义短语”。
+2. 点击“新建词库”建立空词库，或点击“导入词库”读取已有 DAT 文件。
+3. 可新增、双击编辑、粘贴导入、一键编码、一键去重和撤销/重做；编辑内容会自动保存为本地缓存。
+4. 点击“导出词库”生成新的 DAT 文件，再由你自行导入微软拼音并核验结果。
 
-- Source DAT files are read only.
-- The program does not write to Windows IME directories.
-- The program does not automate Microsoft Pinyin import.
-- Export is explicitly triggered by the user and writes a new file.
-- Local workspaces and exported DAT files may contain personal vocabulary. They are excluded from Git by default.
+## 主要功能
 
-## Compatibility
+- 自学习词库与自定义短语词库分栏独立管理
+- 新建词库、导入 DAT、载入本地缓存、导出新 DAT
+- 新增、删除、清空、搜索、批量粘贴导入、去重、撤销与重做
+- 双击编辑词条、编码和自定义短语排序值
+- 自动生成全拼编码；自定义短语还可选择首字母编码
+- 导出后自动重新读取校验
+- 不允许覆盖导入的原 DAT 文件
 
-The standard-generation path for both supported DAT formats was manually imported successfully into Microsoft Pinyin on the developer's Windows environment. Other Windows or Microsoft Pinyin versions may behave differently.
+## 安全边界
 
-Always back up your existing dictionary before importing any exported file. Use this project at your own risk.
+- 导入的 DAT 文件只读，程序不会修改原文件。
+- 程序不会写入 Windows 输入法目录。
+- 程序不会自动执行微软拼音词库导入。
+- 只有用户主动点击“导出词库”时，才会生成新的 DAT 文件。
+- 本地缓存和导出的 DAT 文件可能包含个人词条，默认不提交到 Git。
 
-## Requirements
+## 兼容性与注意事项
 
-- Windows 10 or Windows 11
-- Python 3.10 or later with Tkinter
+两类 DAT 的标准生成路径均已在开发者 Windows 环境中完成微软拼音实机导入验证。不同 Windows 或微软拼音版本仍可能存在差异。
 
-Install the Python dependency:
+导入任何导出文件前，请先在微软拼音设置中备份原有词库，并先用少量测试词条验证。使用本工具产生的文件，需由使用者自行确认导入结果。
 
-```cmd
-python -m pip install -r requirements.txt
-```
+## 源码运行
 
-## Run
+运行环境：
+
+- Windows 10 或 Windows 11
+- Python 3.10 及以上（含 Tkinter）
 
 ```cmd
 git clone https://github.com/Iemooon/mspy-dat-mgr.git
@@ -59,18 +64,16 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-## Test
+## 测试
 
-The repository contains synthetic, non-personal regression fixtures only. It does not include a real exported dictionary, imported DAT, or cached workspace.
+仓库只包含人工构造、不含个人信息的回归测试夹具；不包含真实导入词库、导出 DAT 或本地缓存。
 
 ```cmd
 python run_regression.py
 python -m gui.app --smoke-test
 ```
 
-## Packaging (optional)
-
-To make a Windows executable locally:
+## 本地打包（可选）
 
 ```cmd
 python -m venv .release-venv
@@ -79,8 +82,8 @@ python -m venv .release-venv
 copy README.txt dist\mspy-dat-mgr\README.txt
 ```
 
-The generated files are placed under `dist/` and are ignored by Git.
+也可以直接运行 `build_release.cmd`，生成绿色版 ZIP。打包文件将生成在 `dist/`，默认不会提交到 Git。
 
-## License
+## 许可证
 
-[MIT](LICENSE)
+[MIT License](LICENSE)
