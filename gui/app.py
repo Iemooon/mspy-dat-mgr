@@ -49,6 +49,7 @@ class DictionaryApp(ttk.Frame):
         self.current_kind = "self_study"
         self.pages: dict[str, ttk.Frame] = {}
         self.sidebars: dict[str, ttk.Frame] = {}
+        self.code_groups: dict[str, ttk.LabelFrame] = {}
         self._build()
         self.pack(fill="both", expand=True)
 
@@ -63,8 +64,10 @@ class DictionaryApp(ttk.Frame):
     def _build(self) -> None:
         self.master.title("微软拼音词库管理器")
         # Keep the initial window compact; minimum height is calculated after every sidebar exists.
-        self.master.geometry("720x678")
-        self.master.minsize(700, 678)
+        self.master.geometry("720x677")
+        self.master.minsize(700, 677)
+        # Keep every other text field native; only the search field needs one extra vertical pixel.
+        ttk.Style(self.master).configure("Search.TEntry", padding=(0, 0, 0, 1))
 
         # Do not use PanedWindow here: its sash can leave a stray separator line at the top-right.
         body = ttk.Frame(self)
@@ -86,25 +89,18 @@ class DictionaryApp(ttk.Frame):
             tab.configure(takefocus=True)
             self.mode_tabs[kind] = tab
         for kind in MODE_LABELS:
-            page = ttk.Frame(content, padding=8)
+            # Keep a compact 6px inset on the coding area's right side.
+            page = ttk.Frame(content, padding=(8, 8, 6, 8))
             self.pages[kind] = page
             self._build_page(kind, page)
         footer = ttk.Frame(self)
-        # Keep the footer close to the workspace; the status text is shown in a
-        # flat, read-only entry rather than a recessed status-bar groove.
-        footer.pack(fill="x", pady=(2, 0))
-        ttk.Button(footer, text="使用说明", command=lambda: show_usage(self.master)).pack(side="right")
-        status_box = tk.Entry(
-            footer,
-            textvariable=self.status,
-            state="readonly",
-            relief="solid",
-            bd=1,
-            highlightthickness=0,
-            readonlybackground="white",
-            fg="#404040",
+        footer.pack(fill="x", pady=0)
+        # The button ends 1px closer to the window edge than the 6px coding-area inset.
+        ttk.Button(footer, text="使用说明", command=lambda: show_usage(self.master)).pack(side="right", padx=(0, 5))
+        # Use the native status-bar control again, but remove its recessed border treatment.
+        ttk.Label(footer, textvariable=self.status, anchor="w", relief="flat", borderwidth=0).pack(
+            side="left", fill="x", expand=True, padx=(1, 8)
         )
-        status_box.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self._set_window_minimums()
         self.show_page(self.current_kind)
 
@@ -112,7 +108,7 @@ class DictionaryApp(ttk.Frame):
         self.update_idletasks()
         sidebar_height = max(sidebar.winfo_reqheight() for sidebar in self.sidebars.values())
         status_height = self.winfo_reqheight() - max(page.winfo_reqheight() for page in self.pages.values())
-        self.master.minsize(700, max(678, sidebar_height + status_height + 16))
+        self.master.minsize(700, max(677, sidebar_height + status_height + 16))
 
     def _build_page(self, kind: str, page: ttk.Frame) -> None:
         body = ttk.Frame(page)
@@ -147,13 +143,15 @@ class DictionaryApp(ttk.Frame):
         ]:
             ttk.Button(edit_group, text=text, command=command).pack(fill="x", pady=2)
 
+        # Both tabs reserve the same height as the user-phrase combobox layout.
+        # This prevents the controls below from shifting when switching modes.
+        code_group = ttk.LabelFrame(sidebar, text="自动编码", padding=6, width=150, height=56)
+        code_group.pack(fill="x", pady=(0, 8))
+        code_group.pack_propagate(False)
+        self.code_groups[kind] = code_group
         if kind == "user_phrase":
-            code_group = ttk.LabelFrame(sidebar, text="自动编码", padding=6, width=150)
-            code_group.pack(fill="x", pady=(0, 8))
             ttk.Combobox(code_group, textvariable=self.code_styles[kind], values=list(CODE_STYLE_VALUES), state="readonly", width=12).pack(fill="x")
         else:
-            code_group = ttk.LabelFrame(sidebar, text="自动编码", padding=6, width=150)
-            code_group.pack(fill="x", pady=(0, 8))
             ttk.Label(code_group, text="固定使用全拼").pack(anchor="w")
 
         history_group = ttk.LabelFrame(sidebar, text="历史", padding=6, width=150)
@@ -163,7 +161,8 @@ class DictionaryApp(ttk.Frame):
 
         search_group = ttk.LabelFrame(sidebar, text="搜索", padding=6, width=150)
         search_group.pack(fill="x")
-        ttk.Entry(search_group, textvariable=self.queries[kind]).pack(fill="x")
+        # A 1px bottom inset makes the search field exactly 1px taller without affecting other inputs.
+        ttk.Entry(search_group, textvariable=self.queries[kind], style="Search.TEntry").pack(fill="x")
         self.queries[kind].trace_add("write", lambda *_args, k=kind: self.refresh(k))
 
         table_frame = ttk.Frame(main)
