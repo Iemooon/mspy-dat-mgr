@@ -90,9 +90,21 @@ class DictionaryApp(ttk.Frame):
             self.pages[kind] = page
             self._build_page(kind, page)
         footer = ttk.Frame(self)
-        footer.pack(fill="x", pady=(8, 0))
+        # Keep the footer close to the workspace; the status text is shown in a
+        # flat, read-only entry rather than a recessed status-bar groove.
+        footer.pack(fill="x", pady=(2, 0))
         ttk.Button(footer, text="使用说明", command=lambda: show_usage(self.master)).pack(side="right")
-        ttk.Label(footer, textvariable=self.status, relief="sunken", anchor="w").pack(side="left", fill="x", expand=True, padx=(0, 8))
+        status_box = tk.Entry(
+            footer,
+            textvariable=self.status,
+            state="readonly",
+            relief="solid",
+            bd=1,
+            highlightthickness=0,
+            readonlybackground="white",
+            fg="#404040",
+        )
+        status_box.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self._set_window_minimums()
         self.show_page(self.current_kind)
 
