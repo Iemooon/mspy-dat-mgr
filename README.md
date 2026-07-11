@@ -9,6 +9,12 @@ The application provides separate workspaces for the two formats. It can import,
 
 > This project is not affiliated with or endorsed by Microsoft.
 
+## Download and use
+
+For regular Windows users, download the ZIP package from the repository's **Releases** page, extract the entire archive, and run `mspy-dat-mgr.exe`. Python installation is not required.
+
+A Chinese quick-start and safety reminder opens on launch. It remains available from the **使用说明** button in the lower-right corner of the main window.
+
 ## Features
 
 - Separate tabs for self-study words and custom phrases
@@ -67,8 +73,10 @@ python -m gui.app --smoke-test
 To make a Windows executable locally:
 
 ```cmd
-python -m pip install pyinstaller
-pyinstaller --noconfirm --clean --windowed --name "mspy-dat-mgr" --paths . main.py
+python -m venv .release-venv
+.release-venv\Scripts\python -m pip install -r requirements.txt pyinstaller
+.release-venv\Scripts\python -m PyInstaller --noconfirm --clean --windowed --name "mspy-dat-mgr" --paths . main.py
+copy README.txt dist\mspy-dat-mgr\README.txt
 ```
 
 The generated files are placed under `dist/` and are ignored by Git.

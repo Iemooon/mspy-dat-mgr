@@ -4,11 +4,13 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+.release-venv/
 
 # Build output
 build/
 dist/
 *.spec
+*.zip
 
 # Local user data and generated dictionaries
 output/*

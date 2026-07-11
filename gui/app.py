@@ -18,6 +18,21 @@ MODE_LABELS = {"self_study": "自学习词库", "user_phrase": "自定义短语"
 CODE_STYLE_LABELS = {"full": "全拼", "initials": "首字母"}
 CODE_STYLE_VALUES = {label: value for value, label in CODE_STYLE_LABELS.items()}
 
+USAGE_TEXT = """使用说明
+
+1. 先在左侧选择“自学习词库”或“自定义短语”。
+2. 点击“新建词库”从空白词库开始，或点击“导入词库”读取已有 DAT 文件。
+3. 可新增、双击编辑、粘贴导入、一键编码和去重；编辑结果会自动保存为本地缓存。
+4. 点击“导出词库”生成新的 DAT 文件。程序不会覆盖导入的原 DAT，也不会自动写入 Windows 输入法目录。
+5. 导入前请先在微软拼音设置中备份原有词库，并在导入导出文件后自行确认结果。
+
+提示：本工具支持的两类 DAT 文件用途不同，请勿混用。"""
+
+
+def show_usage(parent: tk.Misc) -> None:
+    """Display the safety-focused quick-start instructions."""
+    messagebox.showinfo("使用说明", USAGE_TEXT, parent=parent)
+
 
 class DictionaryApp(ttk.Frame):
     """Two independent workspaces: one tab per Microsoft Pinyin DAT type."""
@@ -74,7 +89,10 @@ class DictionaryApp(ttk.Frame):
             page = ttk.Frame(content, padding=8)
             self.pages[kind] = page
             self._build_page(kind, page)
-        ttk.Label(self, textvariable=self.status, relief="sunken", anchor="w").pack(fill="x", pady=(8, 0))
+        footer = ttk.Frame(self)
+        footer.pack(fill="x", pady=(8, 0))
+        ttk.Button(footer, text="使用说明", command=lambda: show_usage(self.master)).pack(side="right")
+        ttk.Label(footer, textvariable=self.status, relief="sunken", anchor="w").pack(side="left", fill="x", expand=True, padx=(0, 8))
         self._set_window_minimums()
         self.show_page(self.current_kind)
 
@@ -420,7 +438,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(); parser.add_argument("--smoke-test", action="store_true")
     if parser.parse_args().smoke_test:
         return run_smoke_test()
-    root = tk.Tk(); DictionaryApp(root); root.mainloop()
+    root = tk.Tk()
+    DictionaryApp(root)
+    root.after_idle(lambda: show_usage(root))
+    root.mainloop()
     return 0
 
 
