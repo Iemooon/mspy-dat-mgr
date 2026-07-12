@@ -15,9 +15,9 @@ rmdir /s /q dist 2>nul
 if errorlevel 1 exit /b %errorlevel%
 
 copy /y README.txt "dist\mspy-dat-mgr\README.txt" >nul
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\mspy-dat-mgr' -DestinationPath 'dist\mspy-dat-mgr-v0.1.1-windows-x64.zip' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\mspy-dat-mgr' -DestinationPath 'dist\mspy-dat-mgr-v0.1.2-windows-x64.zip' -Force"
 if errorlevel 1 exit /b %errorlevel%
 
 echo.
 echo Release package created:
-echo %cd%\dist\mspy-dat-mgr-v0.1.1-windows-x64.zip
+echo %cd%\dist\mspy-dat-mgr-v0.1.2-windows-x64.zip

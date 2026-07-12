@@ -7,7 +7,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from gui.session import MAX_HISTORY, Session, generate_codes, generate_pinyin, parse_paste
+from gui.session import MAX_HISTORY, Session, generate_codes, generate_pinyin, generate_self_study_codes, parse_paste, validate_self_study_entries
 from gui.workspace_store import load_workspace, save_workspace
 from mpinyin_dat import Entry
 
@@ -17,6 +17,35 @@ def test_paste_precheck() -> None:
     assert [e.word for e in result.valid] == ["张三"]
     assert result.duplicates == ("张三",)
     assert len(result.errors) == 2
+
+
+def test_self_study_auto_coding_normalizes_v_to_supported_u() -> None:
+    assert generate_self_study_codes("经营策略") == ("jing", "ying", "ce", "lue")
+    assert generate_self_study_codes("略高于") == ("lue", "gao", "yu")
+
+
+def test_self_study_paste_normalizes_manual_lve() -> None:
+    result = parse_paste("经营策略\tjing ying ce lve\n略高于\tlve gao yu", is_self_study=True)
+    assert [(entry.word, entry.codes) for entry in result.valid] == [
+        ("经营策略", ("jing", "ying", "ce", "lue")),
+        ("略高于", ("lue", "gao", "yu")),
+    ]
+    assert not result.errors
+
+
+def test_self_study_paste_rejects_unsupported_pinyin() -> None:
+    result = parse_paste("测试\tce v\n测试\tce shi", is_self_study=True)
+    assert [entry.word for entry in result.valid] == ["测试"]
+    assert result.errors == ("第 1 行：词条“测试”：微软拼音不支持的拼音音节：v",)
+
+
+def test_self_study_export_validation_identifies_entry_and_code() -> None:
+    try:
+        validate_self_study_entries([Entry("测试", ("ce", "shi")), Entry("测试二", ("ce", "shi", "v"))])
+    except Exception as exc:
+        assert str(exc) == "第 2 条词条“测试二”：微软拼音不支持的拼音音节：v"
+    else:
+        raise AssertionError("expected unsupported syllable to be rejected")
 
 
 def test_paste_words_generate_pinyin() -> None:
@@ -51,6 +80,14 @@ def test_self_study_still_uses_full_pinyin_when_initials_requested() -> None:
     assert [(entry.word, entry.codes) for entry in result.valid] == [
         ("戴厚良", ("dai", "hou", "liang")),
     ]
+
+
+def test_quick_delete_model_is_undoable() -> None:
+    session = Session([Entry("张三", ("zhang", "san")), Entry("李四", ("li", "si"))], kind="self_study")
+    session.delete_indices([0])
+    assert [entry.word for entry in session.entries] == ["李四"]
+    assert session.undo()
+    assert [entry.word for entry in session.entries] == ["张三", "李四"]
 
 
 def test_deduplicate_is_undoable() -> None:

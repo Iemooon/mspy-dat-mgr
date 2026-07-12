@@ -36,6 +36,17 @@ def test_import_export_preserves_self_study_source() -> None:
         assert file_sha256(source) == before
 
 
+def test_export_reports_invalid_self_study_entry() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        session = type("SessionLike", (), {"kind": "self_study", "entries": [Entry("测试", ("ce", "v"))]})()
+        try:
+            export_dat(session, Path(directory) / "new.dat")
+        except ValueError as exc:
+            assert str(exc) == "第 1 条词条“测试”：微软拼音不支持的拼音音节：v"
+        else:
+            raise AssertionError("expected invalid self-study pinyin to be rejected")
+
+
 def test_import_export_preserves_user_phrase_source() -> None:
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "user_phrase.dat"

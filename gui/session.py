@@ -6,8 +6,46 @@ from typing import Callable
 from pypinyin import Style, pinyin
 
 from mpinyin_dat import Entry, FormatError
+from mpinyin_dat.self_study import _PINYIN
 
 MAX_HISTORY = 20
+_SELF_STUDY_PINYIN = frozenset(_PINYIN)
+
+
+def normalize_self_study_codes(codes: tuple[str, ...]) -> tuple[str, ...]:
+    """Normalize common ü-as-v spellings only when the DAT supports the result."""
+    normalized: list[str] = []
+    for code in codes:
+        lower = code.lower()
+        replacement = lower.replace("v", "u")
+        normalized.append(replacement if lower not in _SELF_STUDY_PINYIN and replacement in _SELF_STUDY_PINYIN else code)
+    return tuple(normalized)
+
+
+def generate_self_study_codes(word: str) -> tuple[str, ...]:
+    """Generate full pinyin normalized to the Microsoft Pinyin DAT syllable table."""
+    return normalize_self_study_codes(generate_codes(word, style="full"))
+
+
+def invalid_self_study_codes(codes: tuple[str, ...]) -> tuple[str, ...]:
+    """Return unsupported self-study syllables, preserving their input order."""
+    return tuple(code for code in codes if code.lower() not in _SELF_STUDY_PINYIN)
+
+
+def validate_self_study_entry(entry: Entry, *, position: int | None = None) -> None:
+    """Validate the DAT-specific limits before a self-study dictionary is exported."""
+    prefix = f"第 {position} 条词条“{entry.word}”：" if position is not None else f"词条“{entry.word}”："
+    if not 2 <= len(entry.word) <= 12 or len(entry.codes) != len(entry.word):
+        raise FormatError(prefix + "需为 2-12 字且每字一个拼音")
+    invalid = invalid_self_study_codes(entry.codes)
+    if invalid:
+        raise FormatError(prefix + "微软拼音不支持的拼音音节：" + "、".join(invalid))
+
+
+def validate_self_study_entries(entries: list[Entry]) -> None:
+    for position, entry in enumerate(entries, 1):
+        validate_self_study_entry(entry, position=position)
+
 
 
 def generate_pinyin(word: str) -> tuple[str, ...]:
@@ -49,7 +87,8 @@ def parse_paste(text: str, *, is_self_study: bool, code_style: str = "full") -> 
         word = parts[0]
         codes_text = parts[1] if len(parts) >= 2 else ""
         style = "full" if is_self_study else code_style
-        codes = tuple(code for code in codes_text.replace("'", " ").split() if code) or generate_codes(word, style=style)
+        raw_codes = tuple(code for code in codes_text.replace("'", " ").split() if code)
+        codes = (normalize_self_study_codes(raw_codes) if raw_codes else generate_self_study_codes(word)) if is_self_study else (raw_codes or generate_codes(word, style=style))
         try:
             rank = int(parts[2]) if len(parts) == 3 and parts[2] else 0
         except ValueError:
@@ -58,9 +97,12 @@ def parse_paste(text: str, *, is_self_study: bool, code_style: str = "full") -> 
         if not 0 <= rank <= 255:
             errors.append(f"第 {line_no} 行：排序值应在 0 到 255")
             continue
-        if is_self_study and (not 2 <= len(word) <= 12 or len(codes) != len(word)):
-            errors.append(f"第 {line_no} 行：自学习词条需 2-12 字且每字一个拼音")
-            continue
+        if is_self_study:
+            try:
+                validate_self_study_entry(Entry(word, codes, rank))
+            except FormatError as exc:
+                errors.append(f"第 {line_no} 行：{exc}")
+                continue
         if not is_self_study and (len(word) > 64 or len("'".join(codes)) > 32):
             errors.append(f"第 {line_no} 行：自定义短语超出格式限制")
             continue

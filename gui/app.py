@@ -7,7 +7,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from mpinyin_dat import FormatError
 from .dat_service import default_export_name, export_dat, import_dat
-from .session import Session, generate_codes, parse_paste
+from .session import Session, generate_codes, generate_self_study_codes, parse_paste
 from .workspace_store import save_workspace, workspace_path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -182,6 +182,7 @@ class DictionaryApp(ttk.Frame):
         table_frame.columnconfigure(0, weight=1)
         table_frame.rowconfigure(0, weight=1)
         tree.bind("<Double-1>", lambda event, k=kind: self.begin_edit(k, event))
+        tree.bind("<Delete>", lambda event, k=kind: self.delete_selected_quick(k, event))
         table_frame.bind("<Configure>", lambda event, k=kind: self.resize_columns(k, event))
         setattr(self, f"tree_{kind}", tree)
 
@@ -291,7 +292,8 @@ class DictionaryApp(ttk.Frame):
         if not word:
             return
         style = "full" if session.is_self_study else CODE_STYLE_VALUES[self.code_styles[kind].get()]
-        code = simpledialog.askstring("新增", "编码（已自动生成，可修改）：", initialvalue=" ".join(generate_codes(word, style=style)), parent=self.master)
+        initial_codes = generate_self_study_codes(word) if session.is_self_study else generate_codes(word, style=style)
+        code = simpledialog.askstring("新增", "编码（已自动生成，可修改）：", initialvalue=" ".join(initial_codes), parent=self.master)
         if not code:
             return
         rank = 0
@@ -331,14 +333,28 @@ class DictionaryApp(ttk.Frame):
                 self.refresh(kind)
         ttk.Button(dialog, text="预检并导入", command=apply).pack(pady=12)
 
+    def selected_indices(self, kind: str) -> list[int]:
+        return [int(item) for item in self.tree_for(kind).selection()]
+
     def delete_selected(self, kind: str) -> None:
         session = self.require_session(kind)
         if not session:
             return
-        selected = [int(item) for item in self.tree_for(kind).selection()]
+        selected = self.selected_indices(kind)
         if selected and messagebox.askyesno("确认删除", f"确定删除选中的 {len(selected)} 条词条？"):
             session.delete_indices(selected)
             self.refresh(kind)
+
+    def delete_selected_quick(self, kind: str, _event: tk.Event) -> str | None:
+        """Delete selected table rows immediately; Session keeps this action undoable."""
+        session = self.sessions[kind]
+        selected = self.selected_indices(kind)
+        if session and selected:
+            session.delete_indices(selected)
+            self.refresh(kind)
+            self.status.set(f"已快速删除 {len(selected)} 条词条；可按 Ctrl+Z 撤销")
+            return "break"
+        return None
 
     def clear_all(self, kind: str) -> None:
         session = self.require_session(kind)
@@ -355,7 +371,10 @@ class DictionaryApp(ttk.Frame):
         if not session:
             return
         style = "full" if session.is_self_study else CODE_STYLE_VALUES[self.code_styles[kind].get()]
-        regenerated = [type(entry)(entry.word, generate_codes(entry.word, style=style), entry.rank) for entry in session.entries]
+        regenerated = [
+            type(entry)(entry.word, generate_self_study_codes(entry.word) if session.is_self_study else generate_codes(entry.word, style=style), entry.rank)
+            for entry in session.entries
+        ]
         changed = sum(old.codes != new.codes for old, new in zip(session.entries, regenerated))
         if not changed:
             messagebox.showinfo("一键编码", "所有词条编码已符合当前自动编码规则")

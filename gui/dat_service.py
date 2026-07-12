@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from mpinyin_dat import SelfStudyDat, UserPhraseDat
-from .session import Session
+from .session import Session, validate_self_study_entries
 from .workspace_store import file_sha256
 
 
@@ -28,6 +28,7 @@ def export_dat(session: Session, output: str | Path) -> Path:
     target = Path(output)
     target.parent.mkdir(parents=True, exist_ok=True)
     if session.kind == "self_study":
+        validate_self_study_entries(session.entries)
         generated = SelfStudyDat.create(tuple(session.entries))
         generated.write(target)
         if SelfStudyDat.read(target).entries != tuple(session.entries):
